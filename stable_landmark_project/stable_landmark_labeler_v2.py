@@ -47,6 +47,7 @@ import numpy as np
 
 Point = Tuple[float, float]
 IntPoint = Tuple[int, int]
+_HOMOGRAPHY_RANSAC_METHOD = getattr(cv2, "USAC_MAGSAC", cv2.RANSAC)
 
 
 FAIL_MESSAGE = (
@@ -83,6 +84,9 @@ class MatchQuality:
     anchor_pairs: int = 0
     anchor_average_error: Optional[float] = None
     anchor_model: Optional[str] = None
+    use_rootsift: bool = True
+    cross_check_matches: bool = True
+    homography_method: str = "USAC_MAGSAC" if hasattr(cv2, "USAC_MAGSAC") else "RANSAC"
 
 
 @dataclass
@@ -160,6 +164,15 @@ def preprocess_gray(image: np.ndarray) -> np.ndarray:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     return clahe.apply(gray)
+
+
+def to_rootsift(descriptors: Optional[np.ndarray], eps: float = 1e-7) -> Optional[np.ndarray]:
+    if descriptors is None or len(descriptors) == 0:
+        return descriptors
+    descriptors = descriptors.astype(np.float32)
+    l1 = np.sum(np.abs(descriptors), axis=1, keepdims=True)
+    descriptors = descriptors / (l1 + eps)
+    return np.sqrt(descriptors)
 
 
 def _resize_for_display(image: np.ndarray, display_scale: float) -> np.ndarray:
@@ -710,9 +723,13 @@ def detect_sift_features(
     mask: Optional[np.ndarray],
     max_features: int = 8000,
     contrast_threshold: float = 0.01,
+    use_rootsift: bool = True,
 ):
     sift = cv2.SIFT_create(nfeatures=max_features, contrastThreshold=contrast_threshold)
-    return sift.detectAndCompute(gray, mask)
+    keypoints, descriptors = sift.detectAndCompute(gray, mask)
+    if use_rootsift:
+        descriptors = to_rootsift(descriptors)
+    return keypoints, descriptors
 
 
 def detect_sift_features_adaptive(
@@ -721,6 +738,7 @@ def detect_sift_features_adaptive(
     max_features: int,
     contrast_threshold: float,
     target_keypoints: int,
+    use_rootsift: bool = True,
 ):
     """
     Smooth skin can produce very few SIFT features at a fixed threshold.
@@ -737,7 +755,7 @@ def detect_sift_features_adaptive(
     best_threshold = thresholds[0]
 
     for threshold in thresholds:
-        keypoints, descriptors = detect_sift_features(gray, mask, max_features, threshold)
+        keypoints, descriptors = detect_sift_features(gray, mask, max_features, threshold, use_rootsift)
         if len(keypoints) > len(best_keypoints):
             best_keypoints = keypoints
             best_descriptors = descriptors
@@ -748,7 +766,12 @@ def detect_sift_features_adaptive(
     return best_keypoints, best_descriptors, best_threshold
 
 
-def match_descriptors(des1: Optional[np.ndarray], des2: Optional[np.ndarray], lowe_ratio: float):
+def match_descriptors(
+    des1: Optional[np.ndarray],
+    des2: Optional[np.ndarray],
+    lowe_ratio: float,
+    cross_check: bool = True,
+):
     if des1 is None or des2 is None or len(des1) < 2 or len(des2) < 2:
         return [], []
 
@@ -767,6 +790,14 @@ def match_descriptors(des1: Optional[np.ndarray], des2: Optional[np.ndarray], lo
         m, n = pair
         if m.distance < lowe_ratio * n.distance:
             good.append(m)
+    if cross_check and good:
+        reverse = flann.knnMatch(des2, des1, k=1)
+        best_back = {}
+        for pair in reverse:
+            if pair:
+                rm = pair[0]
+                best_back[rm.queryIdx] = rm.trainIdx
+        good = [m for m in good if best_back.get(m.trainIdx) == m.queryIdx]
     return raw_matches, good
 
 
@@ -835,6 +866,7 @@ def match_descriptors_adaptive(
     spatial_prior: Optional[np.ndarray],
     spatial_gate: float,
     target_matches: int,
+    cross_check: bool = True,
 ):
     ratios = []
     for ratio in [lowe_ratio, 0.75, 0.80, 0.85, 0.90, 0.95]:
@@ -846,7 +878,7 @@ def match_descriptors_adaptive(
     best_ratio = lowe_ratio
 
     for ratio in ratios:
-        raw, good = match_descriptors(des1, des2, ratio)
+        raw, good = match_descriptors(des1, des2, ratio, cross_check)
         gated = filter_matches_by_spatial_prior(kp1, kp2, good, spatial_prior, spatial_gate)
         if len(gated) > len(best_matches):
             best_raw = raw
@@ -864,7 +896,17 @@ def compute_homography_ransac(kp1, kp2, matches, threshold: float):
 
     src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
     dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
-    H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, threshold)
+    try:
+        H, inlier_mask = cv2.findHomography(
+            src_pts,
+            dst_pts,
+            _HOMOGRAPHY_RANSAC_METHOD,
+            threshold,
+            maxIters=10000,
+            confidence=0.9999,
+        )
+    except cv2.error:
+        H, inlier_mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, threshold)
 
     if H is None or inlier_mask is None:
         return None, [], None
@@ -1474,6 +1516,7 @@ def augment_with_stable_spot_keypoints(
     descriptors,
     max_spots: int,
     min_score: float,
+    use_rootsift: bool = True,
 ):
     spot_keypoints = detect_stable_spot_keypoints(image, mask, max_spots, min_score)
     if not spot_keypoints:
@@ -1493,6 +1536,8 @@ def augment_with_stable_spot_keypoints(
     computed_spots, spot_descriptors = sift.compute(gray, unique_spots)
     if spot_descriptors is None or not computed_spots:
         return keypoints, descriptors, 0
+    if use_rootsift:
+        spot_descriptors = to_rootsift(spot_descriptors)
 
     combined_keypoints = list(keypoints) + list(computed_spots)
     if descriptors is None:
@@ -2491,6 +2536,9 @@ def _metrics_dict(metrics: MatchQuality) -> Dict[str, Any]:
             else round(float(metrics.anchor_average_error), 6)
         ),
         "anchor_model": metrics.anchor_model,
+        "use_rootsift": metrics.use_rootsift,
+        "cross_check_matches": metrics.cross_check_matches,
+        "homography_method": metrics.homography_method,
     }
 
 
@@ -2594,6 +2642,18 @@ def _parse_args():
     )
     parser.add_argument("--top", default=6, type=int, help="Maximum number of landmarks to label")
     parser.add_argument("--lowe-ratio", default=0.70, type=float, help="Lowe ratio test threshold")
+    parser.add_argument(
+        "--use-rootsift",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Use RootSIFT descriptors for histogram-appropriate matching; default enabled",
+    )
+    parser.add_argument(
+        "--cross-check-matches",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Require mutual nearest-neighbor agreement after Lowe ratio test; default enabled",
+    )
     parser.add_argument("--ransac-threshold", default=4.0, type=float, help="RANSAC reprojection threshold in pixels")
     parser.add_argument("--min-inliers", default=6, type=int, help="Minimum RANSAC inliers required")
     parser.add_argument("--min-inlier-ratio", default=0.05, type=float, help="Minimum RANSAC inlier ratio required")
@@ -2980,6 +3040,7 @@ def main() -> int:
         args.max_features,
         args.contrast_threshold,
         args.target_keypoints,
+        args.use_rootsift,
     )
     kp2, des2, contrast2 = detect_sift_features_adaptive(
         gray2,
@@ -2987,6 +3048,7 @@ def main() -> int:
         args.max_features,
         args.contrast_threshold,
         args.target_keypoints,
+        args.use_rootsift,
     )
     kp1, des1, spot_count1 = augment_with_stable_spot_keypoints(
         img1,
@@ -2996,6 +3058,7 @@ def main() -> int:
         des1,
         args.stable_spot_keypoints,
         args.min_stable_spot_score,
+        args.use_rootsift,
     )
     kp2, des2, spot_count2 = augment_with_stable_spot_keypoints(
         img2,
@@ -3005,6 +3068,7 @@ def main() -> int:
         des2,
         args.stable_spot_keypoints,
         args.min_stable_spot_score,
+        args.use_rootsift,
     )
 
     spatial_prior = None
@@ -3021,6 +3085,7 @@ def main() -> int:
         spatial_prior,
         args.spatial_gate,
         max(args.min_inliers * 3, 30),
+        args.cross_check_matches,
     )
 
     print("Computing RANSAC geometry...")
@@ -3047,6 +3112,9 @@ def main() -> int:
         spatially_gated_matches=len(good_matches),
         stable_spot_keypoints_image1=spot_count1,
         stable_spot_keypoints_image2=spot_count2,
+        use_rootsift=args.use_rootsift,
+        cross_check_matches=args.cross_check_matches,
+        homography_method="USAC_MAGSAC" if _HOMOGRAPHY_RANSAC_METHOD == getattr(cv2, "USAC_MAGSAC", None) else "RANSAC",
     )
     anchor_H, anchor_model, anchor_average_error = compute_anchor_geometry(anchors)
     if anchors and anchor_H is None:
