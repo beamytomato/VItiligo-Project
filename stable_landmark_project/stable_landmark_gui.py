@@ -485,7 +485,7 @@ def form_html(result: Optional[Dict[str, Any]] = None, error: Optional[str] = No
         {checkbox("use_rootsift", "RootSIFT descriptors", True)}
         {checkbox("cross_check_matches", "Mutual nearest-neighbor cross-check", True)}
         {checkbox("auto_detect_baseline_ring", "Auto-detect baseline ring", False)}
-        {checkbox("save_debug", "Save debug outputs", True)}
+        {checkbox("save_debug", "Save debug outputs", False)}
         {checkbox("select_polygon_roi", "Select polygon ROI using OpenCV windows", False, "Advanced: this opens desktop OpenCV selection windows during the run.")}
       </div>
       <button type="submit">Run Landmark Matching</button>
