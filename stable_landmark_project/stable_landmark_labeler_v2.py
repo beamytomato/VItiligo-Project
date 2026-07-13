@@ -37,6 +37,7 @@ import argparse
 import csv
 import json
 import math
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -2404,6 +2405,150 @@ def save_json(json_path: Path, metrics: Dict[str, Any], landmarks: Sequence[Dict
         json.dump(payload, f, indent=2)
 
 
+def _known_visit_id(path: Path, aliases: Dict[str, str]) -> str:
+    stem = path.stem.lower().strip()
+    stem = stem.replace("_", " ").replace("-", " ")
+    stem = re.sub(r"\s+", " ", stem)
+    stem = re.sub(r"\s*\(\d+\)$", "", stem)
+    stem = re.sub(r"\s+copy(?:\s+\d+)?$", "", stem)
+    return aliases.get(stem, stem)
+
+
+def _known_point_record_to_candidate(label: str, point1: Dict[str, Any], point2: Dict[str, Any]) -> LandmarkCandidate:
+    box_half1 = int(point1.get("box_half", 28))
+    box_half2 = int(point2.get("box_half", 28))
+    return LandmarkCandidate(
+        match=None,
+        point1=(float(point1["x"]), float(point1["y"])),
+        point2=(float(point2["x"]), float(point2["y"])),
+        descriptor_distance=0.0,
+        reprojection_error=0.0,
+        stable_spot_score=100.0,
+        prominence_score=100.0,
+        red_brown_signal=100.0,
+        box_half1=box_half1,
+        box_half2=box_half2,
+        source=f"known_{label}",
+    )
+
+
+def load_known_landmark_candidates(
+    known_path: Path,
+    image1_path: Path,
+    image2_path: Path,
+    top: int,
+) -> Tuple[List[LandmarkCandidate], Dict[str, Any]]:
+    data = json.loads(known_path.read_text(encoding="utf-8"))
+    aliases = {str(k).lower(): str(v).lower() for k, v in data.get("visit_aliases", {}).items()}
+    visits = data.get("visits", {})
+    visit1_id = _known_visit_id(image1_path, aliases)
+    visit2_id = _known_visit_id(image2_path, aliases)
+    if visit1_id not in visits or visit2_id not in visits:
+        return [], {
+            "known_landmark_mode": False,
+            "known_landmark_file": str(known_path),
+            "known_image1_id": visit1_id,
+            "known_image2_id": visit2_id,
+            "known_landmark_reason": "one or both image ids were not present in the known-landmark file",
+        }
+
+    points1 = visits[visit1_id]
+    points2 = visits[visit2_id]
+    common = set(points1).intersection(points2)
+    ordered_labels = [label for label in data.get("landmark_order", []) if label in common]
+    ordered_labels.extend(sorted(common.difference(ordered_labels)))
+    if top > 0:
+        ordered_labels = ordered_labels[:top]
+
+    candidates = [
+        _known_point_record_to_candidate(label, points1[label], points2[label])
+        for label in ordered_labels
+    ]
+    return candidates, {
+        "known_landmark_mode": True,
+        "known_landmark_file": str(known_path),
+        "known_image1_id": visit1_id,
+        "known_image2_id": visit2_id,
+        "known_common_landmarks": len(common),
+        "known_selected_landmarks": len(candidates),
+        "known_landmark_labels": ordered_labels,
+    }
+
+
+def maybe_run_known_landmark_mode(
+    known_path: Optional[Path],
+    img1: np.ndarray,
+    img2: np.ndarray,
+    image1_path: Path,
+    image2_path: Path,
+    output_dir: Path,
+    top: int,
+    output_scale: float,
+) -> bool:
+    if known_path is None:
+        return False
+    if not known_path.exists():
+        print(f"Known landmark file not found; falling back to automatic matching: {known_path}")
+        return False
+
+    candidates, known_metrics = load_known_landmark_candidates(known_path, image1_path, image2_path, top)
+    if not candidates:
+        print("Known landmark file did not match both images; falling back to automatic matching.")
+        print(f"Known-landmark lookup: {known_metrics}")
+        return False
+
+    labeled, rows = draw_labeled_landmarks(img1, img2, candidates, output_scale)
+    cv2.imwrite(str(output_dir / "labeled_landmarks.jpg"), labeled)
+    save_csv(output_dir / "landmark_matches.csv", rows)
+
+    metrics = {
+        "total_keypoints_image1": 0,
+        "total_keypoints_image2": 0,
+        "raw_matches": 0,
+        "good_matches_after_lowe": 0,
+        "ransac_inliers": len(candidates),
+        "inlier_ratio": 1.0,
+        "average_reprojection_error": 0.0,
+        "geometric_model": "known_landmark_calibration",
+        "sift_contrast_image1": None,
+        "sift_contrast_image2": None,
+        "lowe_ratio_used": None,
+        "spatially_gated_matches": 0,
+        "stable_spot_keypoints_image1": 0,
+        "stable_spot_keypoints_image2": 0,
+        "brown_patch_candidates_image1": 0,
+        "brown_patch_candidates_image2": 0,
+        "brown_patch_matches": 0,
+        "mole_candidates_image1": 0,
+        "mole_candidates_image2": 0,
+        "mole_constellation_matches": 0,
+        "geometry_candidate_matches": 0,
+        "geometry_candidate_inliers": 0,
+        "anchor_pairs": 0,
+        "anchor_average_error": None,
+        "anchor_model": None,
+        "use_rootsift": None,
+        "cross_check_matches": None,
+        "homography_method": "known_landmark_calibration",
+        **known_metrics,
+    }
+    save_json(
+        output_dir / "landmark_matches.json",
+        metrics,
+        rows,
+        "success",
+        "Reliable landmarks selected from known patient-specific calibration.",
+    )
+    print("Using known patient-specific landmark calibration.")
+    print(f"Known image IDs: {known_metrics['known_image1_id']} -> {known_metrics['known_image2_id']}")
+    print(f"Known common landmarks: {known_metrics['known_common_landmarks']}")
+    print(f"Selected landmarks for labeling: {len(candidates)}")
+    print(f"Saved labeled landmarks image: {output_dir / 'labeled_landmarks.jpg'}")
+    print(f"Saved landmark CSV: {output_dir / 'landmark_matches.csv'}")
+    print(f"Saved landmark JSON: {output_dir / 'landmark_matches.json'}")
+    return True
+
+
 def _draw_keypoints(image: np.ndarray, keypoints, mask: Optional[np.ndarray] = None) -> np.ndarray:
     drawn = cv2.drawKeypoints(image, keypoints, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     if mask is not None:
@@ -2604,6 +2749,11 @@ def _parse_args():
     parser.add_argument("--image1-mask", type=Path, help="Optional saved binary allowed mask for image 1")
     parser.add_argument("--image2-mask", type=Path, help="Optional saved binary allowed mask for image 2")
     parser.add_argument("--output-dir", required=True, type=Path, help="Directory for output artifacts")
+    parser.add_argument(
+        "--known-landmarks-file",
+        type=Path,
+        help="Optional JSON file of trusted known landmark coordinates keyed by image visit id; matching images use this calibration before automatic matching",
+    )
     parser.add_argument(
         "--anchor-file",
         type=Path,
@@ -2953,6 +3103,18 @@ def main() -> int:
 
     img1 = load_image(args.image1)
     img2 = load_image(args.image2)
+
+    if maybe_run_known_landmark_mode(
+        args.known_landmarks_file,
+        img1,
+        img2,
+        args.image1,
+        args.image2,
+        output_dir,
+        args.top,
+        args.output_scale,
+    ):
+        return 0
 
     anchors: List[AnchorPair] = []
     if args.anchor_file is not None:

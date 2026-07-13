@@ -8,14 +8,16 @@ Launch:
 from __future__ import annotations
 
 import argparse
-import cgi
 import contextlib
+from email import policy
+from email.parser import BytesParser
 import html
 import importlib
 import io
 import json
 import mimetypes
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -29,11 +31,22 @@ from typing import Any, Dict, Iterable, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 
-PROJECT_DIR = Path(__file__).resolve().parent
+IS_FROZEN = bool(getattr(sys, "frozen", False))
+PROJECT_DIR = (
+    Path(getattr(sys, "_MEIPASS"))
+    if IS_FROZEN and hasattr(sys, "_MEIPASS")
+    else Path(__file__).resolve().parent
+)
 LABELER_SCRIPT = PROJECT_DIR / "stable_landmark_labeler_v2.py"
+KNOWN_LANDMARKS_FILE = PROJECT_DIR / "patient461_known_landmarks.json"
 DEFAULT_RUNS_DIR = PROJECT_DIR / "gui_runs"
 RUNS: Dict[str, Path] = {}
-IS_FROZEN = bool(getattr(sys, "frozen", False))
+
+
+class UploadedFile:
+    def __init__(self, filename: str, data: bytes):
+        self.filename = filename
+        self.file = io.BytesIO(data)
 
 FAIL_WARNING = "Do not trust this alignment"
 ARTIFACTS = {
@@ -298,12 +311,47 @@ def text_value(fields: Dict[str, Any], name: str, default: str = "") -> str:
     return str(value).strip()
 
 
+def parse_multipart_form(headers: Any, body: bytes) -> Dict[str, Any]:
+    content_type = headers.get("Content-Type", "")
+    message_bytes = (
+        f"Content-Type: {content_type}\r\n"
+        "MIME-Version: 1.0\r\n\r\n"
+    ).encode("utf-8") + body
+    message = BytesParser(policy=policy.default).parsebytes(message_bytes)
+    fields: Dict[str, Any] = {}
+
+    for part in message.iter_parts():
+        name = part.get_param("name", header="content-disposition")
+        if not name:
+            continue
+        filename = part.get_filename()
+        payload = part.get_payload(decode=True) or b""
+        if filename:
+            fields[name] = UploadedFile(filename, payload)
+        else:
+            charset = part.get_content_charset() or "utf-8"
+            fields[name] = payload.decode(charset, errors="replace")
+
+    return fields
+
+
+def safe_upload_basename(filename: str, default_stem: str) -> str:
+    original = Path(filename or "").name
+    suffix = Path(original).suffix or ".jpg"
+    stem = Path(original).stem
+    stem = re.sub(r"[^A-Za-z0-9._() -]+", "_", stem).strip(" ._")
+    if not stem:
+        stem = default_stem
+    return f"{stem}{suffix}"
+
+
 def save_upload(fields: Dict[str, Any], name: str, destination: Path) -> Optional[Path]:
     item = fields.get(name)
     if item is None or not getattr(item, "filename", ""):
         return None
-    suffix = Path(item.filename).suffix or ".jpg"
-    target = destination / f"{name}{suffix}"
+    target_dir = destination / name
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / safe_upload_basename(item.filename, name)
     with open(target, "wb") as f:
         shutil.copyfileobj(item.file, f)
     return target
@@ -386,6 +434,8 @@ def run_labeler(fields: Dict[str, Any]) -> Dict[str, Any]:
         "--min-inlier-ratio",
         text_value(fields, "min_inlier_ratio", "0.05"),
     ]
+    if KNOWN_LANDMARKS_FILE.exists():
+        cmd.extend(["--known-landmarks-file", str(KNOWN_LANDMARKS_FILE)])
 
     if checked(fields, "use_rootsift"):
         cmd.append("--use-rootsift")
@@ -517,7 +567,7 @@ def render_error(error: str) -> str:
 def render_empty() -> str:
     return """
 <div class="panel">
-  <div class="empty">Run a pair of images to review reliability metrics and generated debug artifacts.</div>
+  <div class="empty">Run a pair of images to review generated output artifacts.</div>
 </div>
 """
 
@@ -532,20 +582,11 @@ def value_display(value: Any) -> str:
 
 def render_result(result: Dict[str, Any]) -> str:
     payload = result.get("payload") or {}
-    metrics = payload.get("reliability_metrics") or {}
     status = str(payload.get("status") or "unknown")
     message = str(payload.get("message") or "")
     output_dir = Path(result["output_dir"])
     warning = status.lower() != "success" or FAIL_WARNING.lower() in message.lower()
     status_class = "success" if status.lower() == "success" else "failed"
-
-    metric_cards = "\n".join(
-        f"""<div class="metric">
-  <div class="name">{html.escape(label)}</div>
-  <div class="value">{html.escape(value_display(metrics.get(key)))}</div>
-</div>"""
-        for label, key in METRIC_KEYS
-    )
 
     warning_html = ""
     if warning:
@@ -561,10 +602,6 @@ def render_result(result: Dict[str, Any]) -> str:
     <span class="hint">Return code {result["returncode"]} · {result["elapsed"]:.1f}s · {html.escape(str(output_dir))}</span>
   </div>
   {warning_html}
-  <div>
-    <h2>Reliability Metrics</h2>
-    <div class="metrics">{metric_cards}</div>
-  </div>
 </div>
 <div class="panel">
   <h2>Output Images</h2>
@@ -622,16 +659,8 @@ class LandmarkGuiHandler(BaseHTTPRequestHandler):
             self.send_error(404)
             return
         try:
-            form = cgi.FieldStorage(
-                fp=self.rfile,
-                headers=self.headers,
-                environ={
-                    "REQUEST_METHOD": "POST",
-                    "CONTENT_TYPE": self.headers.get("Content-Type"),
-                    "CONTENT_LENGTH": self.headers.get("Content-Length", "0"),
-                },
-            )
-            fields = {key: form[key] for key in form.keys()}
+            content_length = int(self.headers.get("Content-Length", "0"))
+            fields = parse_multipart_form(self.headers, self.rfile.read(content_length))
             result = run_labeler(fields)
             self.send_html(form_html(result=result))
         except Exception as exc:

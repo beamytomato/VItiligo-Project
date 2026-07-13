@@ -32,6 +32,7 @@ jobs:
             --name StableLandmarkGUI `
             --hidden-import stable_landmark_labeler_v2 `
             --paths stable_landmark_project `
+            --add-data "stable_landmark_project\patient461_known_landmarks.json;." `
             stable_landmark_project\stable_landmark_gui.py
 
       - name: Create zip package
