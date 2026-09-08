@@ -1,0 +1,7 @@
+landmark_id,image1_x,image1_y,image2_x,image2_y,descriptor_distance,reprojection_error,stable_spot_score,prominence_score,red_brown_signal,image1_box_half_size,image2_box_half_size,source,ransac_inlier
+1,169.98,664.39,418.35,738.22,13.5561,7.6023,46.9888,433.2156,46.9888,16,31,brown_patch,True
+2,221.07,748.47,346.7,761.45,11.6395,20.583,45.1267,385.5626,45.1267,14,22,brown_patch,True
+3,711.54,653.1,36.36,971.03,17.1432,0.0,71.0276,87.0285,71.0276,19,15,mole_constellation,True
+4,191.19,483.81,485.61,434.26,37.2491,0.0,68.3737,83.9006,68.3737,15,15,mole_constellation,True
+5,360.35,452.4,378.77,659.0,13.4076,31.7253,66.9377,82.6841,66.9377,13,14,mole_constellation,True
+6,3.32,322.28,712.5,267.33,46.9164,0.0,66.1497,81.2751,66.1497,26,14,mole_constellation,True

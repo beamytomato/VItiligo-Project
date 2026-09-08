@@ -1,0 +1,88 @@
+{
+  "status": "success",
+  "message": "Reliable landmarks selected.",
+  "reliability_metrics": {
+    "total_keypoints_image1": 11224,
+    "total_keypoints_image2": 11224,
+    "raw_matches": 11224,
+    "good_matches_after_lowe": 11224,
+    "ransac_inliers": 11224,
+    "inlier_ratio": 1.0,
+    "average_reprojection_error": 0.0,
+    "geometric_model": "homography",
+    "sift_contrast_image1": 0.006,
+    "sift_contrast_image2": 0.006,
+    "lowe_ratio_used": 0.7,
+    "spatially_gated_matches": 11224,
+    "stable_spot_keypoints_image1": 39,
+    "stable_spot_keypoints_image2": 39
+  },
+  "landmarks": [
+    {
+      "landmark_id": 1,
+      "image1_x": 599.1,
+      "image1_y": 608.54,
+      "image2_x": 599.1,
+      "image2_y": 608.54,
+      "descriptor_distance": 0.0,
+      "reprojection_error": 0.0,
+      "stable_spot_score": 104.3267,
+      "ransac_inlier": true
+    },
+    {
+      "landmark_id": 2,
+      "image1_x": 422.91,
+      "image1_y": 602.82,
+      "image2_x": 422.91,
+      "image2_y": 602.82,
+      "descriptor_distance": 0.0,
+      "reprojection_error": 0.0,
+      "stable_spot_score": 87.9545,
+      "ransac_inlier": true
+    },
+    {
+      "landmark_id": 3,
+      "image1_x": 304.79,
+      "image1_y": 85.21,
+      "image2_x": 304.79,
+      "image2_y": 85.21,
+      "descriptor_distance": 0.0,
+      "reprojection_error": 0.0,
+      "stable_spot_score": 84.0701,
+      "ransac_inlier": true
+    },
+    {
+      "landmark_id": 4,
+      "image1_x": 454.72,
+      "image1_y": 860.28,
+      "image2_x": 454.72,
+      "image2_y": 860.28,
+      "descriptor_distance": 0.0,
+      "reprojection_error": 0.0,
+      "stable_spot_score": 83.5888,
+      "ransac_inlier": true
+    },
+    {
+      "landmark_id": 5,
+      "image1_x": 248.84,
+      "image1_y": 225.06,
+      "image2_x": 248.84,
+      "image2_y": 225.06,
+      "descriptor_distance": 0.0,
+      "reprojection_error": 0.0,
+      "stable_spot_score": 78.9883,
+      "ransac_inlier": true
+    },
+    {
+      "landmark_id": 6,
+      "image1_x": 631.35,
+      "image1_y": 770.68,
+      "image2_x": 631.35,
+      "image2_y": 770.68,
+      "descriptor_distance": 0.0,
+      "reprojection_error": 0.0,
+      "stable_spot_score": 78.9554,
+      "ransac_inlier": true
+    }
+  ]
+}

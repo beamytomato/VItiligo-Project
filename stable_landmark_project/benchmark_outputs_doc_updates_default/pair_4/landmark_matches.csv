@@ -1,0 +1,2 @@
+landmark_id,image1_x,image1_y,image2_x,image2_y,descriptor_distance,reprojection_error,stable_spot_score,prominence_score,red_brown_signal,image1_box_half_size,image2_box_half_size,source,ransac_inlier
+1,731.23,589.4,870.16,1049.69,6.4176,7.8685,46.162,612.4086,46.162,22,19,brown_patch,True

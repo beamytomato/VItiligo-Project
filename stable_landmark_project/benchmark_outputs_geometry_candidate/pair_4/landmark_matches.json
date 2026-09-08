@@ -1,0 +1,29 @@
+{
+  "status": "failed",
+  "message": "Not enough reliable corresponding landmarks found. Do not trust this alignment. Try selecting a tighter overlapping skin ROI, improving lighting, avoiding ring/glare/hair-heavy areas when drawing the ROI, or using images with more overlap.",
+  "reliability_metrics": {
+    "total_keypoints_image1": 4190,
+    "total_keypoints_image2": 3239,
+    "raw_matches": 4190,
+    "good_matches_after_lowe": 31,
+    "ransac_inliers": 5,
+    "inlier_ratio": 0.16129,
+    "average_reprojection_error": 0.128133,
+    "geometric_model": "homography",
+    "sift_contrast_image1": 0.006,
+    "sift_contrast_image2": 0.006,
+    "lowe_ratio_used": 0.9,
+    "spatially_gated_matches": 31,
+    "stable_spot_keypoints_image1": 28,
+    "stable_spot_keypoints_image2": 63,
+    "brown_patch_candidates_image1": 93,
+    "brown_patch_candidates_image2": 120,
+    "brown_patch_matches": 10,
+    "mole_candidates_image1": 0,
+    "mole_candidates_image2": 0,
+    "mole_constellation_matches": 0,
+    "geometry_candidate_matches": 6,
+    "geometry_candidate_inliers": 127
+  },
+  "landmarks": []
+}

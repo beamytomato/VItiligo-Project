@@ -1,0 +1,19 @@
+pair,label,both_sides_detected,image1_detection_distance,image2_detection_distance,image1_candidate_source,image2_candidate_source,appearance_rank,appearance_plus_position_rank,geometry_rank,geometry_projected_distance
+Pair 1,blue,True,20.31,10.47,brown_patch,brown_patch,8,2,2,55.29
+Pair 1,magenta,True,2.39,15.97,stable_spot,brown_patch,75,27,3,36.29
+Pair 1,red,False,14.28,143.79,brown_patch,brown_patch,,,,
+Pair 1,yellow,True,13.22,2.96,stable_spot,stable_spot,93,37,1,35.45
+Pair 2,blue,True,10.69,8.58,brown_patch,brown_patch,45,22,1,21.43
+Pair 2,cyan,False,14.69,103.58,brown_patch,brown_patch,,,,
+Pair 2,green,True,6.19,15.42,brown_patch,brown_patch,4,1,1,5.28
+Pair 2,magenta,True,6.08,10.9,brown_patch,brown_patch,27,9,1,4.39
+Pair 2,red,True,9.81,9.26,stable_spot,stable_spot,23,7,1,14.33
+Pair 2,yellow,True,13.1,15.48,brown_patch,brown_patch,8,2,1,6.95
+Pair 3,green,False,20.48,142.22,brown_patch,brown_patch,,,,
+Pair 3,orange,True,5.52,23.51,mole,brown_patch,175,147,1,11.89
+Pair 3,red,True,8.74,26.13,mole,brown_patch,109,19,1,32.9
+Pair 3,yellow,True,17.77,10.18,stable_spot,stable_spot,117,66,1,30.0
+Pair 4,cyan,False,4.43,476.16,brown_patch,stable_spot,,,,
+Pair 4,orange,True,6.24,7.21,brown_patch,mole,51,79,3,63.7
+Pair 4,red,True,4.36,9.07,stable_spot,stable_spot,46,49,1,12.81
+Pair 4,yellow,True,0.28,5.3,brown_patch,stable_spot,188,182,20,525.29

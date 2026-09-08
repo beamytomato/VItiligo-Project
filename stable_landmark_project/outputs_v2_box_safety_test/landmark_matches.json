@@ -1,0 +1,64 @@
+{
+  "status": "success",
+  "message": "Reliable landmarks selected.",
+  "reliability_metrics": {
+    "total_keypoints_image1": 4897,
+    "total_keypoints_image2": 2995,
+    "raw_matches": 4897,
+    "good_matches_after_lowe": 45,
+    "ransac_inliers": 39,
+    "inlier_ratio": 0.866667,
+    "average_reprojection_error": 1.39797,
+    "geometric_model": "homography",
+    "sift_contrast_image1": 0.006,
+    "sift_contrast_image2": 0.006,
+    "lowe_ratio_used": 0.7,
+    "spatially_gated_matches": 45
+  },
+  "landmarks": [
+    {
+      "landmark_id": 1,
+      "image1_x": 496.47,
+      "image1_y": 443.32,
+      "image2_x": 531.86,
+      "image2_y": 596.61,
+      "descriptor_distance": 143.3492,
+      "reprojection_error": 1.1371,
+      "stable_spot_score": 74.4496,
+      "ransac_inlier": true
+    },
+    {
+      "landmark_id": 2,
+      "image1_x": 475.94,
+      "image1_y": 336.2,
+      "image2_x": 505.5,
+      "image2_y": 434.98,
+      "descriptor_distance": 108.7244,
+      "reprojection_error": 1.2335,
+      "stable_spot_score": 57.7282,
+      "ransac_inlier": true
+    },
+    {
+      "landmark_id": 3,
+      "image1_x": 563.61,
+      "image1_y": 576.79,
+      "image2_x": 614.81,
+      "image2_y": 787.09,
+      "descriptor_distance": 203.6836,
+      "reprojection_error": 0.8518,
+      "stable_spot_score": 33.9242,
+      "ransac_inlier": true
+    },
+    {
+      "landmark_id": 4,
+      "image1_x": 574.6,
+      "image1_y": 513.31,
+      "image2_x": 623.06,
+      "image2_y": 682.92,
+      "descriptor_distance": 195.53,
+      "reprojection_error": 2.3225,
+      "stable_spot_score": 21.4034,
+      "ransac_inlier": true
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "anchors": [
+    {
+      "anchor_id": 1,
+      "image1_x": 761.33,
+      "image1_y": 933.33,
+      "image2_x": 668.0,
+      "image2_y": 877.33
+    },
+    {
+      "anchor_id": 2,
+      "image1_x": 857.33,
+      "image1_y": 646.67,
+      "image2_x": 796.0,
+      "image2_y": 570.67
+    },
+    {
+      "anchor_id": 3,
+      "image1_x": 728.0,
+      "image1_y": 1458.67,
+      "image2_x": 617.33,
+      "image2_y": 1424.0
+    },
+    {
+      "anchor_id": 4,
+      "image1_x": 521.33,
+      "image1_y": 1410.67,
+      "image2_x": 396.0,
+      "image2_y": 1364.0
+    }
+  ]
+}

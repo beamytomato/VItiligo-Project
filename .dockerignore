@@ -1,0 +1,11 @@
+.git
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+stable_landmark_project/gui_runs/
+stable_landmark_project/outputs*/
+stable_landmark_project/benchmark_outputs*/
+stable_landmark_project/candidate_*_outputs/

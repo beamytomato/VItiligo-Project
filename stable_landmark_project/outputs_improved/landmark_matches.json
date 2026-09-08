@@ -1,0 +1,73 @@
+{
+  "status": "success",
+  "message": "Reliable landmarks selected.",
+  "reliability_metrics": {
+    "total_keypoints_image1": 5066,
+    "total_keypoints_image2": 10973,
+    "raw_matches": 5066,
+    "good_matches_after_lowe": 53,
+    "ransac_inliers": 8,
+    "inlier_ratio": 0.150943,
+    "average_reprojection_error": 0.746681,
+    "geometric_model": "homography",
+    "sift_contrast_image1": 0.006,
+    "sift_contrast_image2": 0.006,
+    "lowe_ratio_used": 0.9,
+    "spatially_gated_matches": 53,
+    "stable_spot_keypoints_image1": 74,
+    "stable_spot_keypoints_image2": 46,
+    "brown_patch_candidates_image1": 100,
+    "brown_patch_candidates_image2": 100,
+    "brown_patch_matches": 14
+  },
+  "landmarks": [
+    {
+      "landmark_id": 1,
+      "image1_x": 519.7,
+      "image1_y": 55.65,
+      "image2_x": 581.38,
+      "image2_y": 70.94,
+      "descriptor_distance": 31.2425,
+      "reprojection_error": 13.5463,
+      "stable_spot_score": 50.2291,
+      "prominence_score": 570.4929,
+      "red_brown_signal": 50.2291,
+      "image1_box_half_size": 30,
+      "image2_box_half_size": 25,
+      "source": "brown_patch",
+      "ransac_inlier": true
+    },
+    {
+      "landmark_id": 2,
+      "image1_x": 374.68,
+      "image1_y": 883.33,
+      "image2_x": 268.46,
+      "image2_y": 561.87,
+      "descriptor_distance": 3.7527,
+      "reprojection_error": 21.9399,
+      "stable_spot_score": 43.6465,
+      "prominence_score": 392.4601,
+      "red_brown_signal": 43.6465,
+      "image1_box_half_size": 24,
+      "image2_box_half_size": 17,
+      "source": "brown_patch",
+      "ransac_inlier": true
+    },
+    {
+      "landmark_id": 3,
+      "image1_x": 225.47,
+      "image1_y": 861.42,
+      "image2_x": 156.95,
+      "image2_y": 561.34,
+      "descriptor_distance": 262.3204,
+      "reprojection_error": 0.7224,
+      "stable_spot_score": 37.3118,
+      "prominence_score": 48.6618,
+      "red_brown_signal": 40.9918,
+      "image1_box_half_size": 34,
+      "image2_box_half_size": 34,
+      "source": "sift",
+      "ransac_inlier": true
+    }
+  ]
+}
