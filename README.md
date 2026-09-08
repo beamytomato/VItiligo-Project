@@ -4,4 +4,5 @@ The purpose of this app is to help make skin imaging more consistent between vis
 
 ## Download Links
 The download link for MacOS can be found here: https://drive.google.com/file/d/1ojOYUZ2sZM6FEPM6hKaa8fI5Trbnyq-j/view?usp=drive_link
+
 The download link for Windows can be found here: https://drive.google.com/file/d/1x-NZtkxT67oJBDn8DSrTvomoSA5FMMGl/view?usp=drive_link
