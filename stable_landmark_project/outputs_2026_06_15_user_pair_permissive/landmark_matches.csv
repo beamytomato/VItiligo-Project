@@ -1,3 +1,0 @@
-landmark_id,image1_x,image1_y,image2_x,image2_y,descriptor_distance,reprojection_error,stable_spot_score,prominence_score,red_brown_signal,image1_box_half_size,image2_box_half_size,ransac_inlier
-1,98.32,144.3,112.44,198.24,221.8085,1.0649,40.3206,51.3529,29.8362,34,34,True
-2,105.08,80.88,120.96,97.93,216.7672,1.71,15.641,22.8683,23.5331,34,31,True
